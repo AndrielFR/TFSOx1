@@ -20,22 +20,24 @@ class Client(asyncio.Protocol):
         # Loop
         self.loop = asyncio.get_event_loop()
         super().__init__(server=self.server)
-        
+
     def data_received(self, packet: bytes):
         if len(packet) < 2:
             return None
 
         print(packet)
-        
+
         if packet.startswith(b"<policy-file-request/>"):
-            self.transport.write(b"<cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\"/></cross-domain-policy>")
+            self.transport.write(
+                b'<cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>'
+            )
             return self.transport.close()
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         self.ip_address = self.transport.get_extra_info("peername")[0]
-        
+
     def connection_lost(self, *args):
         self.is_closed = True
 
-        #self.save_database()
+        # self.save_database()
