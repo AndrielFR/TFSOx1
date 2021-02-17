@@ -1,5 +1,7 @@
 import asyncio
 
+from .utils.ByteArray import ByteArray
+
 
 class Client(asyncio.Protocol):
     def __init__(self, server):
@@ -25,13 +27,14 @@ class Client(asyncio.Protocol):
         if len(packet) < 2:
             return None
 
-        print(packet)
-
         if packet.startswith(b"<policy-file-request/>"):
             self.transport.write(
                 b'<cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>'
             )
             return self.transport.close()
+
+        packet = ByteArray(packet)
+        print(str(packet), len(packet))
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport

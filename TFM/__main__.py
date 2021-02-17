@@ -27,7 +27,9 @@ if __name__ == "__main__":
     repeat_count = 22
     print(repeat_text * repeat_count)
     print(f"[{time.strftime('%H:%M:%S')}] Server running on ports: {ports}")
-    print(f"[{time.strftime('%H:%M:%S')}] Server loaded in {time.time() - start}s.")
+    print(
+        f"[{time.strftime('%H:%M:%S')}] Server loaded in {time.time() - start / 1000}ms."
+    )
     print(repeat_text * repeat_count)
     print("[Server]")
     print(f"- Name: {server.name}")
