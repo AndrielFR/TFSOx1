@@ -7,6 +7,9 @@ class ByteArray:
 
         if len(packet) > 0:
             self.write(packet)
+            
+    def copy(self):
+        return ByteArray(self.packet)
 
     def read(self, length: int):
         value = b""

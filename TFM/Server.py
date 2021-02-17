@@ -31,7 +31,6 @@ class Server(asyncio.Transport):
 
         # Loop
         self.loop = asyncio.get_event_loop()
-        super().__init__()
 
     def load_configs(self):
         self.config.read("config.ini")
