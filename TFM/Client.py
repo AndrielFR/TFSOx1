@@ -8,7 +8,7 @@ from typing import List, Union
 class Client(asyncio.Protocol):
     def __init__(self, server):
         # Instances
-        self.packet: ByteArray = ByteArray()
+        self.byte: ByteArray = ByteArray()
         self.server: Server = server
         self.transport: asyncio.Transport = None
 
@@ -25,8 +25,7 @@ class Client(asyncio.Protocol):
 
         # Loop
         self.loop = asyncio.get_running_loop()
-        #super().__init__(server=self.server)
-        
+
     def get_new_len(self, b: ByteArray):
         var_2068 = 0
         var_2053 = 0
@@ -36,7 +35,7 @@ class Client(asyncio.Protocol):
             var_2068 = var_2068 | (var_56 & 127) << 7 * var_2053
             var_2053 += 1
             if not ((var_56 & 128) == 128 and var_2053 < 5):
-                return var_2068+1, var_2053
+                return var_2068 + 1, var_2053
 
     def data_received(self, packet: bytes):
         if len(packet) < 2:
@@ -51,17 +50,17 @@ class Client(asyncio.Protocol):
             )
             return self.transport.close()
 
-        self.packet.write(packet)
-        old_packet = self.packet.copy()
-        while len(self.packet) > 0:
-            length, lenlen = self.get_new_len(self.packet)
-            if len(self.packet) >= length:
-                read = ByteArray(self.packet.get()[:length])
+        self.byte.write(packet)
+        old_packet = self.byte.copy()
+        while len(self.byte) > 0:
+            length, lenlen = self.get_new_len(self.byte)
+            if len(self.byte) >= length:
+                read = ByteArray(self.byte.get()[:length])
                 old_packet.packet = old_packet.get()[length:]
-                self.packet.packet = self.packet.get()[length:]
+                self.byte.packet = self.byte.get()[length:]
                 self.parse_packet(read)
             else:
-                self.packet = old_packet
+                self.byte = old_packet
                 break
 
     def connection_made(self, transport: asyncio.Transport):
@@ -74,11 +73,18 @@ class Client(asyncio.Protocol):
         # self.save_database()
 
         self.transport.close()
-        
+
     def send_old_packet(self, tokens: List[int], values: List[str]):
-        self.send_packet([1, 1], ByteArray().write_utf(chr(1).join(map(str, ["".join(map(chr, tokens))] + values))).get())
-        
-    def send_packet(self, tokens: List[int], data: Union[ByteArray, bytes, int, List, str]):
+        self.send_packet(
+            [1, 1],
+            ByteArray()
+            .write_utf(chr(1).join(map(str, ["".join(map(chr, tokens))] + values)))
+            .get(),
+        )
+
+    def send_packet(
+        self, tokens: List[int], data: Union[ByteArray, bytes, int, List, str]
+    ):
         if self.is_closed:
             return None
 
@@ -90,7 +96,7 @@ class Client(asyncio.Protocol):
             data = ByteArray(data).get()
 
         self.last_packet_id = (self.last_packet_id + 1) % 255
-        
+
         packet = ByteArray()
         length = len(data) + 2
         packet2 = ByteArray()
@@ -100,11 +106,13 @@ class Client(asyncio.Protocol):
             packet2.write_byte(((length & 127) | 128))
             length = calc1
             calc1 = calc1 >> 7
-            
+
         packet2.write_byte((length & 127))
-        packet.write(packet2.get()).write_byte(tokens[0]).write_byte(tokens[1]).write(data)
-        
+        packet.write(packet2.get()).write_byte(tokens[0]).write_byte(tokens[1]).write(
+            data
+        )
+
         self.transport.write(packet.get())
-        
+
     def parse_packet(self, packet: ByteArray):
         print(packet.get())

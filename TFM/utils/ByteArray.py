@@ -7,7 +7,7 @@ class ByteArray:
 
         if len(packet) > 0:
             self.write(packet)
-            
+
     def copy(self):
         return ByteArray(self.packet)
 
