@@ -44,3 +44,5 @@ class Client(asyncio.Protocol):
         self.is_closed = True
 
         # self.save_database()
+
+        self.transport.close()
