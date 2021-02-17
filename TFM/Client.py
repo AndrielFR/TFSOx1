@@ -1,6 +1,7 @@
 import asyncio
 import random
 
+from .Tokens import TOKENS
 from .utils.ByteArray import ByteArray
 from typing import List, Union
 
@@ -14,13 +15,17 @@ class Client(asyncio.Protocol):
 
         # Bool
         self.is_closed: bool = False
+        self.validating_version: bool = False
 
         # Integer
         self.id: int = 0
         self.last_packet_id: int = random.randint(0, 99)
+        self.auth_key: int = random.randint(0, 2147483647)
 
         # String
+        self.tag: str = ""
         self.name: str = ""
+        self.username: str = ""
         self.ip_address: str = "0.0.0.0"
 
         # Loop
@@ -67,10 +72,16 @@ class Client(asyncio.Protocol):
         self.transport = transport
         self.ip_address = self.transport.get_extra_info("peername")[0]
 
+        if not self.username in self.server.players.keys():
+            self.server.players[self.username] = self
+
     def connection_lost(self, *args):
         self.is_closed = True
 
         # self.save_database()
+
+        if self.username in self.server.players.keys():
+            del self.server.players[self.username]
 
         self.transport.close()
 
@@ -115,4 +126,59 @@ class Client(asyncio.Protocol):
         self.transport.write(packet.get())
 
     def parse_packet(self, packet: ByteArray):
-        print(packet.get())
+        if self.is_closed:
+            return None
+
+        packet_id, C, CC = packet.read_byte(), packet.read_byte(), packet.read_byte()
+
+        parsing: bool = False
+
+        if not self.validating_version:
+            if C == 28 and CC == 1:
+                parsing = True
+                version, connection_key = packet.read_short(), packet.read_utf()
+
+                text = "[New user]\n"
+                text += f"- IP: {self.ip_address}\n"
+
+                invalid: bool = False
+
+                if version != self.server.version:
+                    invalid = True
+                    text += f"- Invalid version: {version}, correct: {self.server.version}\n"
+                if not connection_key == self.server.connection_key:
+                    invalid = True
+                    text += f"- Invalid connection key: {connection_key}, correct: {self.server.connection_key}\n"
+                if invalid or self.server.is_debug:
+                    print(text)
+                if invalid:
+                    self.transport.close()
+                else:
+                    self.validating_version = True
+                    self.send_correct_version()
+            else:
+                self.transport.close()
+        else:
+            if C in TOKENS["recv"].keys():
+                if CC in TOKENS["recv"][C].keys():
+                    module = TOKENS["recv"][C][CC]
+                    parsing = True
+                    try:
+                        module.parse(self, self.server, packet)
+                    except Exception as excep:
+                        print(excep)
+
+        if not parsing:
+            if self.server.is_debug:
+                print(f"New token found: [{C}, {CC}], Packet: {packet.get()}")
+
+    def send_correct_version(self, community: str = "EN"):
+        self.send_packet(
+            TOKENS["send"]["correct_version"],
+            ByteArray()
+            .write_int(len(self.server.players))
+            .write_utf(community)
+            .write_utf(community)
+            .write_int(self.auth_key)
+            .write_bool(False),
+        )

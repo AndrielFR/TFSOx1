@@ -31,13 +31,13 @@ class ByteArray:
         return int.from_bytes(self.read(4), "big")
 
     def read_utf(self) -> str:
-        return self.read(self.read_short()).decode("ISO-8859-1")
+        return self.read(self.read_short()).decode("latin-1")
 
     def write(self, value: Union[bytes, int, str]):
         if isinstance(value, int):
-            value = chr(value).encode("ISO-8859-1")
+            value = chr(value).encode("latin-1")
         elif isinstance(value, str):
-            value = value.encode("ISO-8859-1")
+            value = value.encode("latin-1")
         self.packet += value
         return self
 
@@ -68,7 +68,7 @@ class ByteArray:
         return self.__str__()
 
     def __str__(self):
-        return self.get().decode("ISO-8859-1")
+        return self.get().decode("latin-1")
 
     def __len__(self):
         return len(self.get())

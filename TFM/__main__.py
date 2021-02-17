@@ -8,6 +8,10 @@ from typing import List
 
 
 if __name__ == "__main__":
+    repeat_text = "-=-"
+    repeat_count = 24
+    print(repeat_text * repeat_count)
+
     # Server
     start = time.time()
     main_server = Server()
@@ -25,13 +29,9 @@ if __name__ == "__main__":
         servers.append(server)
 
     # Startup message
-    repeat_text = "-=-"
-    repeat_count = 22
     print(repeat_text * repeat_count)
     print(f"[{time.strftime('%H:%M:%S')}] Server running on ports: {ports}")
-    print(
-        f"[{time.strftime('%H:%M:%S')}] Server loaded in {time.time() - start / 1000}ms."
-    )
+    print(f"[{time.strftime('%H:%M:%S')}] Server loaded in {time.time() - start}s.")
     print(repeat_text * repeat_count)
     print("[Server]")
     print(f"- Name: {main_server.name}")
