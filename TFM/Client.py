@@ -63,7 +63,7 @@ class Client(asyncio.Protocol):
                 read = ByteArray(self.byte.get()[:length])
                 old_packet.packet = old_packet.get()[length:]
                 self.byte.packet = self.byte.get()[length:]
-                self.parse_packet(read)
+                self.loop.create_task(self.parse_packet(read))
             else:
                 self.byte = old_packet
                 break
@@ -85,15 +85,15 @@ class Client(asyncio.Protocol):
 
         self.transport.close()
 
-    def send_old_packet(self, tokens: List[int], values: List[str]):
-        self.send_packet(
+    async def send_old_packet(self, tokens: List[int], values: List[str]):
+        await self.send_packet(
             [1, 1],
             ByteArray()
             .write_utf(chr(1).join(map(str, ["".join(map(chr, tokens))] + values)))
             .get(),
         )
 
-    def send_packet(
+    async def send_packet(
         self, tokens: List[int], data: Union[ByteArray, bytes, int, List, str]
     ):
         if self.is_closed:
@@ -102,7 +102,7 @@ class Client(asyncio.Protocol):
         if isinstance(data, ByteArray):
             data = data.get()
         elif isinstance(data, List):
-            return self.send_old_packet(tokens, data)
+            return await self.send_old_packet(tokens, data)
         elif isinstance(data, int) or isinstance(data, str):
             data = ByteArray(data).get()
 
@@ -125,7 +125,7 @@ class Client(asyncio.Protocol):
 
         self.transport.write(packet.get())
 
-    def parse_packet(self, packet: ByteArray):
+    async def parse_packet(self, packet: ByteArray):
         if self.is_closed:
             return None
 
@@ -155,7 +155,7 @@ class Client(asyncio.Protocol):
                     self.transport.close()
                 else:
                     self.validating_version = True
-                    self.send_correct_version()
+                    await self.send_correct_version()
             else:
                 self.transport.close()
         else:
@@ -164,7 +164,7 @@ class Client(asyncio.Protocol):
                     module = TOKENS["recv"][C][CC]
                     parsing = True
                     try:
-                        module.parse(self, self.server, packet)
+                        await module.parse(self, self.server, packet)
                     except Exception as excep:
                         print(excep)
 
@@ -172,8 +172,8 @@ class Client(asyncio.Protocol):
             if self.server.is_debug:
                 print(f"New token found: [{C}, {CC}], Packet: {packet.get()}")
 
-    def send_correct_version(self, community: str = "EN"):
-        self.send_packet(
+    async def send_correct_version(self, community: str = "EN"):
+        await self.send_packet(
             TOKENS["send"]["correct_version"],
             ByteArray()
             .write_int(len(self.server.players))
