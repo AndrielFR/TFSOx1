@@ -24,11 +24,10 @@ def load_token_modules():
                 for line in lines:
                     if "C" in line:
                         C = int(line.split("=")[1].replace(" ", ""))
-                        if not C in TOKENS["recv"].keys():
-                            TOKENS["recv"][C] = {}
-                            LAST_C = C
-                        else:
+                        if C in TOKENS["recv"].keys():
                             raise KeyError(f"The token C {C} is duplicated.")
+                        TOKENS["recv"][C] = {}
+                        LAST_C = C
     for index, file_name in enumerate(files):
         module = importlib.import_module(file_name.replace("/", ".").replace(".py", ""))
         if hasattr(module, "CC"):
