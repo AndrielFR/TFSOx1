@@ -37,9 +37,9 @@ class Client(asyncio.Protocol):
         var_176 = b
         while var_2053 < 10:
             var_56 = var_176.read_byte() & 255
-            var_2068 = var_2068 | (var_56 & 127) << 7 * var_2053
+            var_2068 |= (var_56 & 127) << 7 * var_2053
             var_2053 += 1
-            if not ((var_56 & 128) == 128 and var_2053 < 5):
+            if var_56 & 128 != 128 or var_2053 >= 5:
                 return var_2068 + 1, var_2053
 
     def data_received(self, packet: bytes):
@@ -72,7 +72,7 @@ class Client(asyncio.Protocol):
         self.transport = transport
         self.ip_address = self.transport.get_extra_info("peername")[0]
 
-        if not self.username in self.server.players.keys():
+        if self.username not in self.server.players.keys():
             self.server.players[self.username] = self
 
     def connection_lost(self, *args):
@@ -103,7 +103,7 @@ class Client(asyncio.Protocol):
             data = data.get()
         elif isinstance(data, List):
             return await self.send_old_packet(tokens, data)
-        elif isinstance(data, int) or isinstance(data, str):
+        elif isinstance(data, (int, str)):
             data = ByteArray(data).get()
 
         self.last_packet_id = (self.last_packet_id + 1) % 255
@@ -146,7 +146,7 @@ class Client(asyncio.Protocol):
                 if version != self.server.version:
                     invalid = True
                     text += f"- Invalid version: {version}, correct: {self.server.version}\n"
-                if not connection_key == self.server.connection_key:
+                if connection_key != self.server.connection_key:
                     invalid = True
                     text += f"- Invalid connection key: {connection_key}, correct: {self.server.connection_key}\n"
                 if invalid or self.server.is_debug:
@@ -159,18 +159,16 @@ class Client(asyncio.Protocol):
             else:
                 self.transport.close()
         else:
-            if C in TOKENS["recv"].keys():
-                if CC in TOKENS["recv"][C].keys():
-                    module = TOKENS["recv"][C][CC]
-                    parsing = True
-                    try:
-                        await module.parse(self, self.server, packet)
-                    except Exception as excep:
-                        print(excep)
+            if C in TOKENS["recv"].keys() and CC in TOKENS["recv"][C].keys():
+                module = TOKENS["recv"][C][CC]
+                parsing = True
+                try:
+                    await module.parse(self, self.server, packet)
+                except Exception as excep:
+                    print(excep)
 
-        if not parsing:
-            if self.server.is_debug:
-                print(f"New token found: [{C}, {CC}], Packet: {packet.get()}")
+        if not parsing and self.server.is_debug:
+            print(f"New token found: [{C}, {CC}], Packet: {packet.get()}")
 
     async def send_correct_version(self, community: str = "EN"):
         await self.send_packet(
